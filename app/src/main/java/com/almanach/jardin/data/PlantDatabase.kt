@@ -6,28 +6,23 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [Plant::class, Sowing::class, NaturalEvent::class],
-    version = 3,
+    entities = [Plant::class, Sowing::class, NaturalEvent::class, GardenTask::class],
+    version = 4,
     exportSchema = false
 )
 abstract class PlantDatabase : RoomDatabase() {
     abstract fun plantDao(): PlantDao
     abstract fun sowingDao(): SowingDao
     abstract fun naturalEventDao(): NaturalEventDao
+    abstract fun gardenTaskDao(): GardenTaskDao
 
     companion object {
         @Volatile private var INSTANCE: PlantDatabase? = null
-
         fun get(context: Context): PlantDatabase =
             INSTANCE ?: synchronized(this) {
-                Room.databaseBuilder(
-                    context.applicationContext,
-                    PlantDatabase::class.java,
-                    "almanach.db"
-                )
-                .fallbackToDestructiveMigration()
-                .build()
-                .also { INSTANCE = it }
+                Room.databaseBuilder(context.applicationContext, PlantDatabase::class.java, "almanach.db")
+                    .fallbackToDestructiveMigration()
+                    .build().also { INSTANCE = it }
             }
     }
 }

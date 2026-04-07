@@ -116,13 +116,19 @@ class ExportViewModel(app: Application) : AndroidViewModel(app) {
 
                     var plants = 0; var semis = 0; var obs = 0
 
-                    // Importer les plantes
+                    // Importer les plantes — ignorer les doublons (même nom)
+                    var plantsSkipped = 0
                     json.optJSONArray("plantes")?.let { arr ->
                         for (i in 0 until arr.length()) {
                             runCatching {
                                 val o = arr.getJSONObject(i)
                                 val name = o.optString("nom", "").trim()
                                 if (name.isEmpty()) return@runCatching
+                                // Vérifier si une plante de ce nom existe déjà
+                                if (plantDao.findByName(name) != null) {
+                                    plantsSkipped++
+                                    return@runCatching
+                                }
                                 plantDao.insert(Plant(
                                     name            = name,
                                     latinName       = o.optString("nomLatin", ""),
@@ -200,15 +206,19 @@ class ExportViewModel(app: Application) : AndroidViewModel(app) {
                         }
                     }
 
-                    Triple(plants, semis, obs)
+                    listOf(plants, semis, obs, plantsSkipped)
                 }
             }
 
             result.fold(
-                onSuccess = { (p, s, o) ->
-                    val msg = if (p == 0 && s == 0 && o == 0)
+                onSuccess = { list ->
+                    val (p, s, o, skipped) = list
+                    val msg = if (p == 0 && s == 0 && o == 0 && skipped == 0)
                         "⚠️ Aucune donnée importée — vérifiez le fichier"
-                    else "✅ Importé : $p plante(s), $s semis, $o observation(s)"
+                    else buildString {
+                        append("✅ Importé : $p plante(s), $s semis, $o observation(s)")
+                        if (skipped > 0) append(" · $skipped doublon(s) ignoré(s)")
+                    }
                     _result.postValue(ExportResult(msg, p + s + o > 0))
                 },
                 onFailure = { e ->

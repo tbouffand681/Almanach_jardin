@@ -19,4 +19,7 @@ interface PlantDao {
 
     @Query("SELECT COUNT(*) FROM plants WHERE isDefault = 1")
     suspend fun countDefaults(): Int
+
+    @Query("SELECT * FROM plants WHERE LOWER(name) = LOWER(:name) LIMIT 1")
+    suspend fun findByName(name: String): Plant?
 }

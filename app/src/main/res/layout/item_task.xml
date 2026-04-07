@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="horizontal" android:gravity="center_vertical"
+    android:paddingHorizontal="16dp" android:paddingVertical="4dp">
+
+    <CheckBox android:id="@+id/cb_task"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:buttonTint="@color/colorPrimary" />
+
+    <TextView android:id="@+id/tv_task_title"
+        android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:layout_marginStart="4dp"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:text="Tailler les rosiers" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_delete_task"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="✕" android:textColor="#B71C1C"
+        android:minWidth="0dp" android:paddingHorizontal="8dp" />
+
+</LinearLayout>
