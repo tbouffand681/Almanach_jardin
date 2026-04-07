@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
         binding.tabs.addTab(binding.tabs.newTab().setText("🌦️ Météo"))
         binding.tabs.addTab(binding.tabs.newTab().setText("📔 Journal"))
         binding.tabs.addTab(binding.tabs.newTab().setText("📚 Plantes"))
+        binding.tabs.addTab(binding.tabs.newTab().setText("💾 Export"))
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
                     2 -> WeatherFragment()
                     3 -> JournalFragment()
                     4 -> LibraryFragment()
+                    5 -> ExportFragment()
                     else -> SowingFragment()
                 }
                 supportFragmentManager.beginTransaction()

@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Saisie ville avec autocomplétion -->
+        <!-- Saisie ville -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_city"
             android:layout_width="match_parent"
@@ -19,15 +19,13 @@
             android:layout_marginBottom="8dp"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:hint="Votre ville (ex: Lyon, Chambéry...)">
-            <AutoCompleteTextView
+            <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_city"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:imeOptions="actionSearch"
                 android:inputType="textCapWords"
-                android:singleLine="true"
-                android:completionThreshold="3"
-                android:dropDownHeight="200dp" />
+                android:singleLine="true" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
