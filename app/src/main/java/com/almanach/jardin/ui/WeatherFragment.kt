@@ -30,7 +30,11 @@ class WeatherFragment : Fragment() {
         binding.etCity.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) { doSearch(); true } else false
         }
-        binding.btnRefresh.setOnClickListener { vm.resetToIdle() }
+        binding.btnRefresh.setOnClickListener {
+            vm.resetToIdle()
+            // Pré-remplir avec la dernière ville pour faciliter la re-saisie
+            vm.savedCity?.let { binding.etCity.setText(it) }
+        }
 
         vm.state.observe(viewLifecycleOwner) { state ->
             when (state) {

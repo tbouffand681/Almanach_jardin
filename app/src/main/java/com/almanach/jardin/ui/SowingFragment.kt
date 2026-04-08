@@ -75,7 +75,7 @@ class SowingFragment : Fragment() {
     private fun confirmDelete(sowing: SowingWithPlant) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Supprimer ce semis ?")
-            .setMessage("${sowing.plantEmoji} ${sowing.plantName} — ${sowing.sowingDate}\nCette action est irréversible.")
+            .setMessage("${sowing.plantEmoji} ${sowing.plantName} — ${fmtDate(sowing.sowingDate)}\nCette action est irréversible.")
             .setPositiveButton("Supprimer") { _, _ -> sowingVm.deleteSowing(sowing.sowingId) {} }
             .setNegativeButton("Annuler", null)
             .show()
@@ -111,8 +111,8 @@ class SowingAdapter(
         val s = getItem(position)
         holder.emoji.text    = s.plantEmoji
         holder.name.text     = s.plantName
-        holder.date.text     = "🌱 Semé le ${s.sowingDate}"
-        holder.harvest.text  = "🗓 Récolte ~${s.expectedHarvestDate}"
+        holder.date.text     = "🌱 Semé le ${fmtDate(s.sowingDate)}"
+        holder.harvest.text  = "🗓 Récolte ~${fmtDate(s.expectedHarvestDate)}"
         holder.location.text = if (s.location.isNotEmpty()) "📍 ${s.location}" else ""
         holder.location.visibility = if (s.location.isNotEmpty()) View.VISIBLE else View.GONE
         holder.status.text   = SowingViewModel.statusLabel(s.status)
@@ -123,6 +123,13 @@ class SowingAdapter(
     }
 
     companion object {
+        private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
+        private val displayFmt = DateTimeFormatter.ofPattern("dd/MM/yy")
+
+        fun fmtDate(iso: String): String = try {
+            LocalDate.parse(iso, isoFmt).format(displayFmt)
+        } catch (e: Exception) { iso }
+
         val DIFF = object : DiffUtil.ItemCallback<SowingWithPlant>() {
             override fun areItemsTheSame(a: SowingWithPlant, b: SowingWithPlant) = a.sowingId == b.sowingId
             override fun areContentsTheSame(a: SowingWithPlant, b: SowingWithPlant) = a == b

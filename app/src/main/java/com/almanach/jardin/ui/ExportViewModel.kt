@@ -12,6 +12,7 @@ import com.almanach.jardin.data.PlantDatabase
 import com.almanach.jardin.data.Sowing
 import com.almanach.jardin.data.SowingStatus
 import com.almanach.jardin.data.EventCategory
+import com.almanach.jardin.data.GardenTask
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ class ExportViewModel(app: Application) : AndroidViewModel(app) {
     private val plantDao  = db.plantDao()
     private val sowingDao = db.sowingDao()
     private val eventDao  = db.naturalEventDao()
+    private val taskDao   = db.gardenTaskDao()
 
     private val _result = MutableLiveData<ExportResult?>()
     val result: LiveData<ExportResult?> = _result
@@ -95,6 +97,19 @@ class ExportViewModel(app: Application) : AndroidViewModel(app) {
                 })
             }
             root.put("observations", obsArr)
+
+            // Tâches
+            val tasksArr = JSONArray()
+            for (month in 1..12) {
+                taskDao.getTasksForMonth(month).first().forEach { t ->
+                    tasksArr.put(JSONObject().apply {
+                        put("mois", t.month)
+                        put("titre", t.title)
+                        put("fait", t.done)
+                    })
+                }
+            }
+            root.put("taches", tasksArr)
 
             root.toString(2)  // JSON indenté
         }

@@ -90,7 +90,7 @@ class EventAdapter(
         val e = getItem(position)
         holder.emoji.text    = e.category.emoji
         holder.title.text    = e.title
-        holder.date.text     = e.eventDate
+        holder.date.text     = fmtDate(e.eventDate)
         holder.category.text = e.category.label
         holder.desc.text     = e.description
         holder.desc.visibility = if (e.description.isNotEmpty()) View.VISIBLE else View.GONE
@@ -101,6 +101,9 @@ class EventAdapter(
     }
 
     companion object {
+        private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
+        private val displayFmt = DateTimeFormatter.ofPattern("dd/MM/yy")
+        fun fmtDate(iso: String) = try { LocalDate.parse(iso, isoFmt).format(displayFmt) } catch (e: Exception) { iso }
         val DIFF = object : DiffUtil.ItemCallback<NaturalEvent>() {
             override fun areItemsTheSame(a: NaturalEvent, b: NaturalEvent) = a.id == b.id
             override fun areContentsTheSame(a: NaturalEvent, b: NaturalEvent) = a == b
