@@ -18,6 +18,15 @@ import com.almanach.jardin.databinding.FragmentJournalBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+private val J_ISO_FMT     = DateTimeFormatter.ISO_LOCAL_DATE
+private val J_DISPLAY_FMT = DateTimeFormatter.ofPattern("dd/MM/yy")
+
+private fun fmtEventDate(iso: String): String = try {
+    LocalDate.parse(iso, J_ISO_FMT).format(J_DISPLAY_FMT)
+} catch (e: Exception) { iso }
 
 class JournalFragment : Fragment() {
 
@@ -90,7 +99,7 @@ class EventAdapter(
         val e = getItem(position)
         holder.emoji.text    = e.category.emoji
         holder.title.text    = e.title
-        holder.date.text     = fmtDate(e.eventDate)
+        holder.date.text     = fmtEventDate(e.eventDate)
         holder.category.text = e.category.label
         holder.desc.text     = e.description
         holder.desc.visibility = if (e.description.isNotEmpty()) View.VISIBLE else View.GONE
@@ -101,9 +110,6 @@ class EventAdapter(
     }
 
     companion object {
-        private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
-        private val displayFmt = DateTimeFormatter.ofPattern("dd/MM/yy")
-        fun fmtDate(iso: String) = try { LocalDate.parse(iso, isoFmt).format(displayFmt) } catch (e: Exception) { iso }
         val DIFF = object : DiffUtil.ItemCallback<NaturalEvent>() {
             override fun areItemsTheSame(a: NaturalEvent, b: NaturalEvent) = a.id == b.id
             override fun areContentsTheSame(a: NaturalEvent, b: NaturalEvent) = a == b
