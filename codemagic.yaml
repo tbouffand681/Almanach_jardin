@@ -9,6 +9,7 @@ workflows:
         KEYSTORE_PASSWORD: almanach2026
         KEY_ALIAS: almanach
         KEY_PASSWORD: almanach2026
+        JAVA_VERSION: "17"
     scripts:
       - name: Set gradlew executable
         script: chmod +x gradlew
