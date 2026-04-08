@@ -19,6 +19,16 @@ import com.almanach.jardin.databinding.FragmentSowingBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+// Formateur partagé dans le fichier
+private val ISO_FMT     = DateTimeFormatter.ISO_LOCAL_DATE
+private val DISPLAY_FMT = DateTimeFormatter.ofPattern("dd/MM/yy")
+
+private fun fmtDate(iso: String): String = try {
+    LocalDate.parse(iso, ISO_FMT).format(DISPLAY_FMT)
+} catch (e: Exception) { iso }
 
 class SowingFragment : Fragment() {
 
@@ -36,10 +46,7 @@ class SowingFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val adapter = SowingAdapter(
-            onEditClick   = { sowing ->
-                EditSowingDialog.newInstance(sowing)
-                    .show(childFragmentManager, "EditSowing")
-            },
+            onEditClick   = { sowing -> EditSowingDialog.newInstance(sowing).show(childFragmentManager, "EditSowing") },
             onStatusClick = { sowing -> showStatusDialog(sowing) },
             onDeleteClick = { sowing -> confirmDelete(sowing) }
         )
@@ -84,8 +91,6 @@ class SowingFragment : Fragment() {
     override fun onDestroyView() { super.onDestroyView(); _binding = null }
 }
 
-// ─── Adapter ─────────────────────────────────────────────────────────────────
-
 class SowingAdapter(
     private val onEditClick:   (SowingWithPlant) -> Unit,
     private val onStatusClick: (SowingWithPlant) -> Unit,
@@ -123,13 +128,6 @@ class SowingAdapter(
     }
 
     companion object {
-        private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
-        private val displayFmt = DateTimeFormatter.ofPattern("dd/MM/yy")
-
-        fun fmtDate(iso: String): String = try {
-            LocalDate.parse(iso, isoFmt).format(displayFmt)
-        } catch (e: Exception) { iso }
-
         val DIFF = object : DiffUtil.ItemCallback<SowingWithPlant>() {
             override fun areItemsTheSame(a: SowingWithPlant, b: SowingWithPlant) = a.sowingId == b.sowingId
             override fun areContentsTheSame(a: SowingWithPlant, b: SowingWithPlant) = a == b
