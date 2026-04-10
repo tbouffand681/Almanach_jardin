@@ -25,7 +25,7 @@ class EventDialog : BottomSheetDialogFragment() {
 
     private var editEvent: NaturalEvent? = null
     private var selectedDate: LocalDate = LocalDate.now()
-    private val displayFmt = DateTimeFormatter.ofPattern("dd/MM/yy", Locale.FRENCH)
+    private val displayFmt = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
     private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
 
     companion object {

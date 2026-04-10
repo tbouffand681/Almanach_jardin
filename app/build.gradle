@@ -12,28 +12,8 @@ android {
         applicationId "com.almanach.jardin"
         minSdk 26
         targetSdk 34
-        versionCode 7
-        versionName "1.7"
-    }
-
-    signingConfigs {
-        release {
-            storeFile file(System.getenv("KEYSTORE_PATH") ?: "almanach.keystore")
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "almanach2026"
-            keyAlias System.getenv("KEY_ALIAS") ?: "almanach"
-            keyPassword System.getenv("KEY_PASSWORD") ?: "almanach2026"
-        }
-    }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled false
-        }
-        debug {
-            // Utiliser aussi la même signature en debug pour permettre les mises à jour
-            signingConfig signingConfigs.release
-        }
+        versionCode 1
+        versionName "1.0"
     }
 
     buildFeatures { viewBinding true }
@@ -46,15 +26,24 @@ android {
 }
 
 dependencies {
+    // UI Material
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    // Activity + Fragment KTX (requis pour viewModels() et activityViewModels())
     implementation 'androidx.activity:activity-ktx:1.8.2'
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
+
+    // ViewModel + LiveData
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+
+    // Room
     implementation 'androidx.room:room-runtime:2.6.1'
     implementation 'androidx.room:room-ktx:2.6.1'
     ksp 'androidx.room:room-compiler:2.6.1'
+
+    // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }

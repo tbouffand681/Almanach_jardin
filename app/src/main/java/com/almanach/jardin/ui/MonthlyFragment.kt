@@ -41,6 +41,9 @@ class TaskViewModel(app: Application) : AndroidViewModel(app) {
     fun addTask(month: Int, title: String) = viewModelScope.launch(Dispatchers.IO) {
         if (title.isNotBlank()) dao.insert(GardenTask(month = month, title = title.trim()))
     }
+    fun updateTask(task: GardenTask, newTitle: String) = viewModelScope.launch(Dispatchers.IO) {
+        if (newTitle.isNotBlank()) dao.update(task.copy(title = newTitle.trim()))
+    }
     fun toggleDone(task: GardenTask) = viewModelScope.launch(Dispatchers.IO) {
         dao.setDone(task.id, !task.done)
     }
@@ -77,6 +80,7 @@ class MonthlyFragment : Fragment() {
 
         val taskAdapter = TaskAdapter(
             onToggle = { task -> taskVm.toggleDone(task) },
+            onEdit = { task -> showEditTaskDialog(task) },
             onDelete = { task ->
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle("Supprimer cette tâche ?")
@@ -156,6 +160,27 @@ class MonthlyFragment : Fragment() {
         etTask.requestFocus()
     }
 
+    private fun showEditTaskDialog(task: GardenTask) {
+        val layout = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_task, null)
+        val til    = layout.findViewById<TextInputLayout>(R.id.til_task)
+        val etTask = layout.findViewById<TextInputEditText>(R.id.et_task)
+        etTask.setText(task.title)
+        etTask.setSelection(task.title.length)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Modifier la tâche")
+            .setView(layout)
+            .setPositiveButton("Enregistrer") { _, _ ->
+                val newTitle = etTask.text?.toString()?.trim() ?: ""
+                if (newTitle.isEmpty()) til.error = "Requis"
+                else taskVm.updateTask(task, newTitle)
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
+
+        etTask.requestFocus()
+    }
+
     private fun monthName(month: Int) =
         LocalDate.of(2024, month, 1)
             .month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.FRENCH)
@@ -166,13 +191,16 @@ class MonthlyFragment : Fragment() {
 
 class MonthlyPlantAdapter : ListAdapter<Plant, MonthlyPlantAdapter.VH>(DIFF) {
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
-        val emoji: TextView = view.findViewById(R.id.tv_emoji)
-        val name:  TextView = view.findViewById(R.id.tv_name)
-        val latin: TextView = view.findViewById(R.id.tv_latin)
-        val details: TextView = view.findViewById(R.id.tv_details)
-        val sun:   TextView = view.findViewById(R.id.tv_sun)
-        val water: TextView = view.findViewById(R.id.tv_water)
-        val notes: TextView = view.findViewById(R.id.tv_notes)
+        val emoji:       TextView = view.findViewById(R.id.tv_emoji)
+        val name:        TextView = view.findViewById(R.id.tv_name)
+        val expandIcon:  TextView = view.findViewById(R.id.tv_expand_icon)
+        val header:      View     = view.findViewById(R.id.layout_header)
+        val details:     View     = view.findViewById(R.id.layout_details)
+        val latin:       TextView = view.findViewById(R.id.tv_latin)
+        val detailsText: TextView = view.findViewById(R.id.tv_details)
+        val sun:         TextView = view.findViewById(R.id.tv_sun)
+        val water:       TextView = view.findViewById(R.id.tv_water)
+        val notes:       TextView = view.findViewById(R.id.tv_notes)
     }
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
         VH(LayoutInflater.from(parent.context).inflate(R.layout.item_monthly_plant, parent, false))
@@ -180,13 +208,23 @@ class MonthlyPlantAdapter : ListAdapter<Plant, MonthlyPlantAdapter.VH>(DIFF) {
         val p = getItem(position)
         holder.emoji.text = p.emoji
         holder.name.text  = p.name
+        // Détails (remplis mais cachés)
         if (p.latinName.isNotEmpty()) { holder.latin.text = p.latinName; holder.latin.visibility = View.VISIBLE }
         else holder.latin.visibility = View.GONE
-        holder.details.text = "⏱ ${p.occupationDays} j sol  ↔️ ${p.spacingCm} cm  🌱 Germ. ${p.germinationDays} j"
+        holder.detailsText.text = "⏱ ${p.occupationDays} j sol  ↔️ ${p.spacingCm} cm  🌱 Germ. ${p.germinationDays} j"
         holder.sun.text   = when { p.sunExposure.contains("Plein", ignoreCase=true)->"☀️ Plein soleil"; p.sunExposure.contains("Mi", ignoreCase=true)->"⛅ Mi-ombre"; else->"🌑 Ombre" }
         holder.water.text = when { p.waterNeeds.contains("Élevé", ignoreCase=true)->"💧💧💧 Élevé"; p.waterNeeds.contains("Moyen", ignoreCase=true)->"💧💧 Moyen"; else->"💧 Faible" }
         if (p.notes.isNotEmpty()) { holder.notes.text = "📝 ${p.notes}"; holder.notes.visibility = View.VISIBLE }
         else holder.notes.visibility = View.GONE
+        // Repli par défaut
+        holder.details.visibility = View.GONE
+        holder.expandIcon.text = "▼"
+        // Toggle au clic
+        holder.header.setOnClickListener {
+            val expanded = holder.details.visibility == View.VISIBLE
+            holder.details.visibility = if (expanded) View.GONE else View.VISIBLE
+            holder.expandIcon.text = if (expanded) "▼" else "▲"
+        }
     }
     companion object { val DIFF = object : DiffUtil.ItemCallback<Plant>() {
         override fun areItemsTheSame(a: Plant, b: Plant) = a.id == b.id
@@ -196,11 +234,13 @@ class MonthlyPlantAdapter : ListAdapter<Plant, MonthlyPlantAdapter.VH>(DIFF) {
 
 class TaskAdapter(
     private val onToggle: (GardenTask) -> Unit,
+    private val onEdit:   (GardenTask) -> Unit,
     private val onDelete: (GardenTask) -> Unit
 ) : ListAdapter<GardenTask, TaskAdapter.VH>(DIFF) {
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
         val checkbox: CheckBox = view.findViewById(R.id.cb_task)
         val title:    TextView = view.findViewById(R.id.tv_task_title)
+        val btnEdit:  View     = view.findViewById(R.id.btn_edit_task)
         val btnDel:   View     = view.findViewById(R.id.btn_delete_task)
     }
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -211,7 +251,8 @@ class TaskAdapter(
         holder.title.text = task.title
         holder.title.alpha = if (task.done) 0.4f else 1.0f
         holder.checkbox.setOnClickListener { onToggle(task) }
-        holder.btnDel.setOnClickListener { onDelete(task) }
+        holder.btnEdit.setOnClickListener  { onEdit(task) }
+        holder.btnDel.setOnClickListener   { onDelete(task) }
     }
     companion object { val DIFF = object : DiffUtil.ItemCallback<GardenTask>() {
         override fun areItemsTheSame(a: GardenTask, b: GardenTask) = a.id == b.id

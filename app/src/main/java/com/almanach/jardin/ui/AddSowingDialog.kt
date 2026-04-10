@@ -30,7 +30,7 @@ class AddSowingDialog : BottomSheetDialogFragment() {
 
     private var selectedDate: LocalDate = LocalDate.now()
     private var plantList: List<Plant> = emptyList()
-    private val fmt = DateTimeFormatter.ofPattern("dd/MM/yy", Locale.FRENCH)
+    private val fmt = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
 
     // Plante pré-sélectionnée (depuis la bibliothèque, optionnel)
     var preselectedPlantId: Long = -1L

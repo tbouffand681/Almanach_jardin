@@ -15,6 +15,9 @@ interface GardenTaskDao {
     @Query("UPDATE garden_tasks SET done = :done WHERE id = :id")
     suspend fun setDone(id: Long, done: Boolean)
 
+    @Update
+    suspend fun update(task: GardenTask)
+
     @Delete
     suspend fun delete(task: GardenTask)
 }

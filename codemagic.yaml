@@ -1,32 +1,16 @@
 workflows:
-  android-release:
-    name: Android Release Build
+  android-debug:
+    name: Android Debug Build
     max_build_duration: 30
-    environment:
-      groups:
-        - keystore_credentials
-      vars:
-        KEYSTORE_PASSWORD: almanach2026
-        KEY_ALIAS: almanach
-        KEY_PASSWORD: almanach2026
-        JAVA_VERSION: "17"
     scripts:
       - name: Set gradlew executable
         script: chmod +x gradlew
-
       - name: Install Gradle wrapper if missing
         script: |
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
             gradle wrapper --gradle-version 8.4
           fi
-
-      - name: Decode keystore
-        script: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > $CM_BUILD_DIR/app/almanach.keystore
-          echo "KEYSTORE_PATH=$CM_BUILD_DIR/app/almanach.keystore" >> $CM_ENV
-
-      - name: Build APK release
-        script: ./gradlew assembleRelease
-
+      - name: Build APK debug
+        script: ./gradlew assembleDebug
     artifacts:
-      - app/build/outputs/apk/release/*.apk
+      - app/build/outputs/apk/debug/*.apk

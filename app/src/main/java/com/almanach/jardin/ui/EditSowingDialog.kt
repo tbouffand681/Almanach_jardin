@@ -31,7 +31,7 @@ class EditSowingDialog : BottomSheetDialogFragment() {
 
     private var selectedDate: LocalDate = LocalDate.now()
     private var plantList: List<Plant> = emptyList()
-    private val displayFmt = DateTimeFormatter.ofPattern("dd/MM/yy", Locale.FRENCH)
+    private val displayFmt = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.FRENCH)
     private val isoFmt = DateTimeFormatter.ISO_LOCAL_DATE
 
     companion object {

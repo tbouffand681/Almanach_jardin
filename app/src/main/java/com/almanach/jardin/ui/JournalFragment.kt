@@ -18,15 +18,6 @@ import com.almanach.jardin.databinding.FragmentJournalBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-
-private val J_ISO_FMT     = DateTimeFormatter.ISO_LOCAL_DATE
-private val J_DISPLAY_FMT = DateTimeFormatter.ofPattern("dd/MM/yy")
-
-private fun fmtEventDate(iso: String): String = try {
-    LocalDate.parse(iso, J_ISO_FMT).format(J_DISPLAY_FMT)
-} catch (e: Exception) { iso }
 
 class JournalFragment : Fragment() {
 
@@ -99,7 +90,7 @@ class EventAdapter(
         val e = getItem(position)
         holder.emoji.text    = e.category.emoji
         holder.title.text    = e.title
-        holder.date.text     = fmtEventDate(e.eventDate)
+        holder.date.text     = e.eventDate
         holder.category.text = e.category.label
         holder.desc.text     = e.description
         holder.desc.visibility = if (e.description.isNotEmpty()) View.VISIBLE else View.GONE

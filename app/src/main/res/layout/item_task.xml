@@ -16,10 +16,17 @@
         android:text="Tailler les rosiers" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_edit_task"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="✏️" android:textSize="16sp"
+        android:minWidth="0dp" android:paddingHorizontal="6dp" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_delete_task"
         style="@style/Widget.Material3.Button.TextButton"
         android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:text="✕" android:textColor="#B71C1C"
-        android:minWidth="0dp" android:paddingHorizontal="8dp" />
+        android:minWidth="0dp" android:paddingHorizontal="6dp" />
 
 </LinearLayout>

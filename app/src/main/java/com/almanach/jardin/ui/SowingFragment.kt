@@ -19,16 +19,6 @@ import com.almanach.jardin.databinding.FragmentSowingBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-
-// Formateur partagé dans le fichier
-private val ISO_FMT     = DateTimeFormatter.ISO_LOCAL_DATE
-private val DISPLAY_FMT = DateTimeFormatter.ofPattern("dd/MM/yy")
-
-private fun fmtDate(iso: String): String = try {
-    LocalDate.parse(iso, ISO_FMT).format(DISPLAY_FMT)
-} catch (e: Exception) { iso }
 
 class SowingFragment : Fragment() {
 
@@ -46,7 +36,10 @@ class SowingFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val adapter = SowingAdapter(
-            onEditClick   = { sowing -> EditSowingDialog.newInstance(sowing).show(childFragmentManager, "EditSowing") },
+            onEditClick   = { sowing ->
+                EditSowingDialog.newInstance(sowing)
+                    .show(childFragmentManager, "EditSowing")
+            },
             onStatusClick = { sowing -> showStatusDialog(sowing) },
             onDeleteClick = { sowing -> confirmDelete(sowing) }
         )
@@ -82,7 +75,7 @@ class SowingFragment : Fragment() {
     private fun confirmDelete(sowing: SowingWithPlant) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Supprimer ce semis ?")
-            .setMessage("${sowing.plantEmoji} ${sowing.plantName} — ${fmtDate(sowing.sowingDate)}\nCette action est irréversible.")
+            .setMessage("${sowing.plantEmoji} ${sowing.plantName} — ${sowing.sowingDate}\nCette action est irréversible.")
             .setPositiveButton("Supprimer") { _, _ -> sowingVm.deleteSowing(sowing.sowingId) {} }
             .setNegativeButton("Annuler", null)
             .show()
@@ -90,6 +83,8 @@ class SowingFragment : Fragment() {
 
     override fun onDestroyView() { super.onDestroyView(); _binding = null }
 }
+
+// ─── Adapter ─────────────────────────────────────────────────────────────────
 
 class SowingAdapter(
     private val onEditClick:   (SowingWithPlant) -> Unit,
@@ -116,8 +111,8 @@ class SowingAdapter(
         val s = getItem(position)
         holder.emoji.text    = s.plantEmoji
         holder.name.text     = s.plantName
-        holder.date.text     = "🌱 Semé le ${fmtDate(s.sowingDate)}"
-        holder.harvest.text  = "🗓 Récolte ~${fmtDate(s.expectedHarvestDate)}"
+        holder.date.text     = "🌱 Semé le ${s.sowingDate}"
+        holder.harvest.text  = "🗓 Récolte ~${s.expectedHarvestDate}"
         holder.location.text = if (s.location.isNotEmpty()) "📍 ${s.location}" else ""
         holder.location.visibility = if (s.location.isNotEmpty()) View.VISIBLE else View.GONE
         holder.status.text   = SowingViewModel.statusLabel(s.status)
