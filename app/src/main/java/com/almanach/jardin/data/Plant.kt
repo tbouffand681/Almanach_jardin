@@ -16,6 +16,8 @@ data class Plant(
     val sunExposure: String = "Plein soleil",
     val waterNeeds: String = "Moyen",
     val germinationDays: Int = 10,
+    val germinationTempMin: Int = 10,
+    val germinationTempMax: Int = 25,
     val notes: String = "",
     val isDefault: Boolean = false
 )

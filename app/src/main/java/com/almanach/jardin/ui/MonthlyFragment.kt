@@ -35,22 +35,118 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
+// ─── ViewModel ───────────────────────────────────────────────────────────────
+
 class TaskViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = PlantDatabase.get(app).gardenTaskDao()
+
     fun tasksFor(month: Int): Flow<List<GardenTask>> = dao.getTasksForMonth(month)
+
     fun addTask(month: Int, title: String) = viewModelScope.launch(Dispatchers.IO) {
-        if (title.isNotBlank()) dao.insert(GardenTask(month = month, title = title.trim()))
+        if (title.isNotBlank()) dao.insert(GardenTask(month = month, title = title.trim(), isDefault = false))
     }
+
     fun updateTask(task: GardenTask, newTitle: String) = viewModelScope.launch(Dispatchers.IO) {
         if (newTitle.isNotBlank()) dao.update(task.copy(title = newTitle.trim()))
     }
+
     fun toggleDone(task: GardenTask) = viewModelScope.launch(Dispatchers.IO) {
         dao.setDone(task.id, !task.done)
     }
+
     fun deleteTask(task: GardenTask) = viewModelScope.launch(Dispatchers.IO) {
         dao.delete(task)
     }
+
+    fun populateDefaultTasksIfNeeded() = viewModelScope.launch(Dispatchers.IO) {
+        if (dao.countDefaults() > 0) return@launch
+        defaultOrchardTasks.forEach { dao.insert(it) }
+    }
+
+    companion object {
+        // Calendrier verger bio — pommiers, poiriers, petits fruitiers
+        // Rouille grillagée (RG) et carpocapse (CP) intégrés
+        private val defaultOrchardTasks = listOf(
+            // Janvier
+            GardenTask(month=1, title="🍎 Taille d'hiver pommiers/poiriers (repos végétatif)", isDefault=true),
+            GardenTask(month=1, title="🍎 Supprimer les momies de fruits sur les branches", isDefault=true),
+            GardenTask(month=1, title="🍎 Traitement bouillie bordelaise sur blessures de taille", isDefault=true),
+            GardenTask(month=1, title="🫐 Vérifier tuteurs et protections hivernales petits fruitiers", isDefault=true),
+            // Février
+            GardenTask(month=2, title="🍎 Fin de taille d'hiver avant le débourrement", isDefault=true),
+            GardenTask(month=2, title="🍎 Traitement préventif bouillie bordelaise (tavelure)", isDefault=true),
+            GardenTask(month=2, title="🫐 Tailler framboisiers et groseilliers (couper à 5 yeux)", isDefault=true),
+            GardenTask(month=2, title="🐛 [CP] Poser des bandes de glu sur les troncs contre les fourmis", isDefault=true),
+            // Mars
+            GardenTask(month=3, title="🍎 Terminer la taille avant l'ouverture des bourgeons", isDefault=true),
+            GardenTask(month=3, title="🍎 Apporter engrais au pied des arbres (compost, cendres)", isDefault=true),
+            GardenTask(month=3, title="🐛 [CP] Surveiller premières attaques de pucerons", isDefault=true),
+            GardenTask(month=3, title="🍓 Désherber et pailler le pied des fraisiers", isDefault=true),
+            // Avril
+            GardenTask(month=4, title="🍎 Floraison : ne plus tailler, éviter tout traitement", isDefault=true),
+            GardenTask(month=4, title="🍎 Protéger fleurs contre gelées tardives si nécessaire", isDefault=true),
+            GardenTask(month=4, title="🐛 [RG] Surveiller l'apparition de taches orangées sur feuilles (rouille grillagée)", isDefault=true),
+            GardenTask(month=4, title="🐛 [RG] Traitement préventif soufre ou bouillie soufrée si rouille détectée", isDefault=true),
+            GardenTask(month=4, title="🍓 Protéger fraisiers avec filet anti-oiseaux dès la floraison", isDefault=true),
+            // Mai
+            GardenTask(month=5, title="🍎 Attacher branches des fruitiers palissés à leur support", isDefault=true),
+            GardenTask(month=5, title="🍎 Apporter engrais riche en potasse (cendres de bois)", isDefault=true),
+            GardenTask(month=5, title="🐛 [CP] Poser pièges à phéromones contre le carpocapse", isDefault=true),
+            GardenTask(month=5, title="🐛 [RG] Contrôler et renouveler traitement soufre si rouille présente", isDefault=true),
+            GardenTask(month=5, title="⚠️ Saints de Glace (11-13 mai) : protéger jeunes plantations si gel annoncé", isDefault=true),
+            GardenTask(month=5, title="🫐 Protéger groseilles et framboises avec filet anti-oiseaux", isDefault=true),
+            GardenTask(month=5, title="🍎 Ne pas tailler avant le 15 juin", isDefault=true),
+            // Juin
+            GardenTask(month=6, title="🍎 Taille en vert à partir du 20-21 juin (solstice)", isDefault=true),
+            GardenTask(month=6, title="🍎 Éclaircir les fruits sur arbres trop chargés", isDefault=true),
+            GardenTask(month=6, title="🐛 [CP] Vérifier pièges à phéromones, noter les captures", isDefault=true),
+            GardenTask(month=6, title="🐛 [CP] Traitement bio carpocapse si captures élevées (kaolin, spinosad)", isDefault=true),
+            GardenTask(month=6, title="🫐 Couper tiges de framboisiers après récolte", isDefault=true),
+            GardenTask(month=6, title="🍎 Arroser régulièrement les arbres plantés récemment", isDefault=true),
+            // Juillet
+            GardenTask(month=7, title="🍎 Taille d'été légère pour aérer et laisser passer la lumière", isDefault=true),
+            GardenTask(month=7, title="🍎 Arroser tôt le matin ou en soirée (15-20 L/m² par semaine si sécheresse)", isDefault=true),
+            GardenTask(month=7, title="🍎 Poser paillage pour conserver l'humidité", isDefault=true),
+            GardenTask(month=7, title="🍎 Éclaircer les pommes (améliore calibre et qualité)", isDefault=true),
+            GardenTask(month=7, title="🐛 [CP] Vérifier pièges, renouveler traitement kaolin si nécessaire", isDefault=true),
+            GardenTask(month=7, title="🐛 Surveiller feuilles et rameaux (maladies, parasites)", isDefault=true),
+            // Août
+            GardenTask(month=8, title="🍎 Arroser abondamment (surtout jeunes arbres)", isDefault=true),
+            GardenTask(month=8, title="🍎 Étayer les branches chargées (pommiers, poiriers)", isDefault=true),
+            GardenTask(month=8, title="🍎 Ensacher poires et pommes pour protéger des nuisibles", isDefault=true),
+            GardenTask(month=8, title="🫐 Couper tiges de framboisiers ayant porté fruits", isDefault=true),
+            GardenTask(month=8, title="🐛 [CP] Poser pièges à guêpes/frelons (bouteille + sirop)", isDefault=true),
+            GardenTask(month=8, title="🍎 Greffe en écusson possible ce mois", isDefault=true),
+            // Septembre
+            GardenTask(month=9, title="🍎 Récolter pommes précoces, poires, quetsches", isDefault=true),
+            GardenTask(month=9, title="🍎 Taille en vert encore possible sur pommiers/poiriers", isDefault=true),
+            GardenTask(month=9, title="🍎 Ramasser et détruire les fruits atteints de moniliose", isDefault=true),
+            GardenTask(month=9, title="🫐 Couper cannes de framboisiers à 10 cm du sol", isDefault=true),
+            GardenTask(month=9, title="🫐 Récolter mûres, noisettes, raisins", isDefault=true),
+            GardenTask(month=9, title="🐛 Greffe en écusson avant le 15 septembre", isDefault=true),
+            // Octobre
+            GardenTask(month=10, title="🍎 Récolter pommes et poires de conservation (vers le 15/10)", isDefault=true),
+            GardenTask(month=10, title="🍎 Stocker fruits à 10°C max, hygrométrie 70-80%", isDefault=true),
+            GardenTask(month=10, title="🍎 Nettoyer arbres : couper branches mortes, malades, croisées", isDefault=true),
+            GardenTask(month=10, title="🫐 Bouturer groseilliers, cassis, framboisiers", isDefault=true),
+            GardenTask(month=10, title="🍎 Préparer trous de plantation pour novembre", isDefault=true),
+            // Novembre
+            GardenTask(month=11, title="🍎 Planter nouveaux fruitiers (à partir de la Ste-Catherine, 25 nov)", isDefault=true),
+            GardenTask(month=11, title="🫐 Planter groseilliers, cassis, framboisiers (tailler à 5 yeux)", isDefault=true),
+            GardenTask(month=11, title="🍎 Apporter engrais de fond (compost, fumier)", isDefault=true),
+            GardenTask(month=11, title="🍎 Traiter arbres à noyaux à la bouillie bordelaise", isDefault=true),
+            GardenTask(month=11, title="🍎 Supprimer branches mortes et fruits momifiés", isDefault=true),
+            GardenTask(month=11, title="🍎 Préparer greffons pour le printemps", isDefault=true),
+            // Décembre
+            GardenTask(month=12, title="🍎 Repos végétatif — entretien et affûtage des outils", isDefault=true),
+            GardenTask(month=12, title="🍎 Vérifier régulièrement les fruits en conservation", isDefault=true),
+            GardenTask(month=12, title="🍎 Protéger jeunes arbres contre le gel si nécessaire", isDefault=true),
+            GardenTask(month=12, title="📋 Planifier la taille et les plantations de la prochaine saison", isDefault=true)
+        )
+    }
 }
+
+// ─── Fragment ─────────────────────────────────────────────────────────────────
 
 class MonthlyFragment : Fragment() {
 
@@ -74,19 +170,35 @@ class MonthlyFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        taskVm.populateDefaultTasksIfNeeded()
+
         val plantAdapter = MonthlyPlantAdapter()
         binding.recyclerPlants.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerPlants.adapter = plantAdapter
 
         val taskAdapter = TaskAdapter(
             onToggle = { task -> taskVm.toggleDone(task) },
-            onEdit = { task -> showEditTaskDialog(task) },
+            onEdit = { task ->
+                // Les tâches verger ne peuvent pas être modifiées
+                if (task.isDefault) {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setMessage("Les tâches du calendrier verger ne peuvent pas être modifiées.")
+                        .setPositiveButton("OK", null).show()
+                } else {
+                    showEditTaskDialog(task)
+                }
+            },
             onDelete = { task ->
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("Supprimer cette tâche ?")
-                    .setPositiveButton("Supprimer") { _, _ -> taskVm.deleteTask(task) }
-                    .setNegativeButton("Annuler", null)
-                    .show()
+                if (task.isDefault) {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setMessage("Les tâches du calendrier verger ne peuvent pas être supprimées.")
+                        .setPositiveButton("OK", null).show()
+                } else {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("Supprimer cette tâche ?")
+                        .setPositiveButton("Supprimer") { _, _ -> taskVm.deleteTask(task) }
+                        .setNegativeButton("Annuler", null).show()
+                }
             }
         )
         binding.recyclerTasks.layoutManager = LinearLayoutManager(requireContext())
@@ -154,9 +266,7 @@ class MonthlyFragment : Fragment() {
                 if (title.isEmpty()) til.error = "Requis"
                 else taskVm.addTask(currentMonth, title)
             }
-            .setNegativeButton("Annuler", null)
-            .show()
-
+            .setNegativeButton("Annuler", null).show()
         etTask.requestFocus()
     }
 
@@ -175,9 +285,7 @@ class MonthlyFragment : Fragment() {
                 if (newTitle.isEmpty()) til.error = "Requis"
                 else taskVm.updateTask(task, newTitle)
             }
-            .setNegativeButton("Annuler", null)
-            .show()
-
+            .setNegativeButton("Annuler", null).show()
         etTask.requestFocus()
     }
 
@@ -189,6 +297,8 @@ class MonthlyFragment : Fragment() {
     override fun onDestroyView() { taskJob?.cancel(); super.onDestroyView(); _binding = null }
 }
 
+// ─── Adapter plantes ──────────────────────────────────────────────────────────
+
 class MonthlyPlantAdapter : ListAdapter<Plant, MonthlyPlantAdapter.VH>(DIFF) {
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
         val emoji:       TextView = view.findViewById(R.id.tv_emoji)
@@ -198,6 +308,7 @@ class MonthlyPlantAdapter : ListAdapter<Plant, MonthlyPlantAdapter.VH>(DIFF) {
         val details:     View     = view.findViewById(R.id.layout_details)
         val latin:       TextView = view.findViewById(R.id.tv_latin)
         val detailsText: TextView = view.findViewById(R.id.tv_details)
+        val germTemp:    TextView = view.findViewById(R.id.tv_germ_temp)
         val sun:         TextView = view.findViewById(R.id.tv_sun)
         val water:       TextView = view.findViewById(R.id.tv_water)
         val notes:       TextView = view.findViewById(R.id.tv_notes)
@@ -208,18 +319,16 @@ class MonthlyPlantAdapter : ListAdapter<Plant, MonthlyPlantAdapter.VH>(DIFF) {
         val p = getItem(position)
         holder.emoji.text = p.emoji
         holder.name.text  = p.name
-        // Détails (remplis mais cachés)
         if (p.latinName.isNotEmpty()) { holder.latin.text = p.latinName; holder.latin.visibility = View.VISIBLE }
         else holder.latin.visibility = View.GONE
         holder.detailsText.text = "⏱ ${p.occupationDays} j sol  ↔️ ${p.spacingCm} cm  🌱 Germ. ${p.germinationDays} j"
+        holder.germTemp.text    = "🌡️ Germination : ${p.germinationTempMin}–${p.germinationTempMax} °C"
         holder.sun.text   = when { p.sunExposure.contains("Plein", ignoreCase=true)->"☀️ Plein soleil"; p.sunExposure.contains("Mi", ignoreCase=true)->"⛅ Mi-ombre"; else->"🌑 Ombre" }
         holder.water.text = when { p.waterNeeds.contains("Élevé", ignoreCase=true)->"💧💧💧 Élevé"; p.waterNeeds.contains("Moyen", ignoreCase=true)->"💧💧 Moyen"; else->"💧 Faible" }
         if (p.notes.isNotEmpty()) { holder.notes.text = "📝 ${p.notes}"; holder.notes.visibility = View.VISIBLE }
         else holder.notes.visibility = View.GONE
-        // Repli par défaut
         holder.details.visibility = View.GONE
         holder.expandIcon.text = "▼"
-        // Toggle au clic
         holder.header.setOnClickListener {
             val expanded = holder.details.visibility == View.VISIBLE
             holder.details.visibility = if (expanded) View.GONE else View.VISIBLE
@@ -231,6 +340,8 @@ class MonthlyPlantAdapter : ListAdapter<Plant, MonthlyPlantAdapter.VH>(DIFF) {
         override fun areContentsTheSame(a: Plant, b: Plant) = a == b
     }}
 }
+
+// ─── Adapter tâches ───────────────────────────────────────────────────────────
 
 class TaskAdapter(
     private val onToggle: (GardenTask) -> Unit,
@@ -248,8 +359,11 @@ class TaskAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val task = getItem(position)
         holder.checkbox.isChecked = task.done
-        holder.title.text = task.title
+        holder.title.text  = task.title
         holder.title.alpha = if (task.done) 0.4f else 1.0f
+        // Tâches verger : icônes légèrement atténuées pour indiquer non-modifiables
+        holder.btnEdit.alpha = if (task.isDefault) 0.3f else 1.0f
+        holder.btnDel.alpha  = if (task.isDefault) 0.3f else 1.0f
         holder.checkbox.setOnClickListener { onToggle(task) }
         holder.btnEdit.setOnClickListener  { onEdit(task) }
         holder.btnDel.setOnClickListener   { onDelete(task) }

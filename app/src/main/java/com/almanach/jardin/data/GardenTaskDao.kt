@@ -6,8 +6,14 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface GardenTaskDao {
 
-    @Query("SELECT * FROM garden_tasks WHERE month = :month ORDER BY done ASC, id ASC")
+    @Query("SELECT * FROM garden_tasks WHERE month = :month ORDER BY isDefault DESC, done ASC, id ASC")
     fun getTasksForMonth(month: Int): Flow<List<GardenTask>>
+
+    @Query("SELECT * FROM garden_tasks WHERE isDefault = 0 ORDER BY month ASC, id ASC")
+    fun getAllUserTasks(): Flow<List<GardenTask>>
+
+    @Query("SELECT COUNT(*) FROM garden_tasks WHERE isDefault = 1")
+    suspend fun countDefaults(): Int
 
     @Insert
     suspend fun insert(task: GardenTask): Long

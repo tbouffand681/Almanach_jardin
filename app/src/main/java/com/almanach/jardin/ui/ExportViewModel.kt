@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.almanach.jardin.data.NaturalEvent
+import com.almanach.jardin.data.GardenTask
 import com.almanach.jardin.data.Plant
 import com.almanach.jardin.data.PlantDatabase
 import com.almanach.jardin.data.Sowing
@@ -29,6 +30,7 @@ class ExportViewModel(app: Application) : AndroidViewModel(app) {
     private val plantDao  = db.plantDao()
     private val sowingDao = db.sowingDao()
     private val eventDao  = db.naturalEventDao()
+    private val taskDao   = db.gardenTaskDao()
 
     private val _result = MutableLiveData<ExportResult?>()
     val result: LiveData<ExportResult?> = _result
@@ -39,10 +41,11 @@ class ExportViewModel(app: Application) : AndroidViewModel(app) {
 
     fun buildExportJson(): suspend () -> String = {
         withContext(Dispatchers.IO) {
-            val plants  = plantDao.getAllPlants().first()
-            val sowings = sowingDao.getAllSowingsWithPlant().first()
-            val events  = eventDao.getAll().first()
-            val date    = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+            val plants     = plantDao.getAllPlants().first()
+            val sowings    = sowingDao.getAllSowingsWithPlant().first()
+            val events     = eventDao.getAll().first()
+            val userTasks  = taskDao.getAllUserTasks().first()
+            val date       = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
             val root = JSONObject()
             root.put("exportDate", date)
@@ -95,6 +98,17 @@ class ExportViewModel(app: Application) : AndroidViewModel(app) {
                 })
             }
             root.put("observations", obsArr)
+
+            // Tâches personnalisées (pas les tâches verger par défaut)
+            val tachesArr = JSONArray()
+            userTasks.forEach { t ->
+                tachesArr.put(JSONObject().apply {
+                    put("mois", t.month)
+                    put("titre", t.title)
+                    put("faite", t.done)
+                })
+            }
+            root.put("taches", tachesArr)
 
             root.toString(2)  // JSON indenté
         }
@@ -206,20 +220,40 @@ class ExportViewModel(app: Application) : AndroidViewModel(app) {
                         }
                     }
 
-                    listOf(plants, semis, obs, plantsSkipped)
+                    // Importer les tâches personnalisées
+                    var taches = 0
+                    json.optJSONArray("taches")?.let { arr ->
+                        for (i in 0 until arr.length()) {
+                            runCatching {
+                                val o = arr.getJSONObject(i)
+                                val titre = o.optString("titre", "").trim()
+                                val mois  = o.optInt("mois", 0)
+                                if (titre.isEmpty() || mois !in 1..12) return@runCatching
+                                taskDao.insert(GardenTask(
+                                    month     = mois,
+                                    title     = titre,
+                                    done      = o.optBoolean("faite", false),
+                                    isDefault = false
+                                ))
+                                taches++
+                            }
+                        }
+                    }
+
+                    listOf(plants, semis, obs, plantsSkipped, taches)
                 }
             }
 
             result.fold(
                 onSuccess = { list ->
-                    val (p, s, o, skipped) = list
-                    val msg = if (p == 0 && s == 0 && o == 0 && skipped == 0)
+                    val (p, s, o, skipped, t) = list
+                    val msg = if (p == 0 && s == 0 && o == 0 && skipped == 0 && t == 0)
                         "⚠️ Aucune donnée importée — vérifiez le fichier"
                     else buildString {
-                        append("✅ Importé : $p plante(s), $s semis, $o observation(s)")
+                        append("✅ Importé : $p plante(s), $s semis, $o observation(s), $t tâche(s)")
                         if (skipped > 0) append(" · $skipped doublon(s) ignoré(s)")
                     }
-                    _result.postValue(ExportResult(msg, p + s + o > 0))
+                    _result.postValue(ExportResult(msg, p + s + o + t > 0))
                 },
                 onFailure = { e ->
                     _result.postValue(ExportResult("❌ Erreur : ${e.message}", false))
