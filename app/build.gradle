@@ -12,8 +12,38 @@ android {
         applicationId "com.almanach.jardin"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 11
+        versionName "1.1"
+    }
+
+    // Signature release — variables injectées par Codemagic
+    // En local, la signature debug est utilisée automatiquement si ces variables sont absentes
+    signingConfigs {
+        release {
+            def keystorePath    = System.getenv("CM_KEYSTORE_PATH")
+            def keyAlias        = System.getenv("CM_KEY_ALIAS")
+            def keyPassword     = System.getenv("CM_KEY_PASSWORD")
+            def storePassword   = System.getenv("CM_STORE_PASSWORD")
+
+            if (keystorePath && keyAlias && keyPassword && storePassword) {
+                storeFile     file(keystorePath)
+                this.keyAlias        = keyAlias
+                this.keyPassword     = keyPassword
+                this.storePassword   = storePassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
     }
 
     buildFeatures { viewBinding true }
@@ -30,7 +60,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    // Activity + Fragment KTX (requis pour viewModels() et activityViewModels())
+    // Activity + Fragment KTX
     implementation 'androidx.activity:activity-ktx:1.8.2'
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
 

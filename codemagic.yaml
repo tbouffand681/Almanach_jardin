@@ -1,16 +1,46 @@
 workflows:
-  android-debug:
-    name: Android Debug Build
+  android-release:
+    name: Android Release Build
     max_build_duration: 30
+
+    environment:
+      vars:
+        # Ces variables sont à définir dans Codemagic :
+        # App settings → Environment variables (chiffré)
+        #   CM_KEYSTORE_PATH  : chemin temporaire du keystore (géré automatiquement)
+        #   CM_KEY_ALIAS      : almanach
+        #   CM_KEY_PASSWORD   : votre mot de passe clé
+        #   CM_STORE_PASSWORD : votre mot de passe keystore
+      android_signing:
+        - almanach_keystore   # Nom du keystore tel qu'uploadé dans Codemagic
+
     scripts:
       - name: Set gradlew executable
         script: chmod +x gradlew
+
       - name: Install Gradle wrapper if missing
         script: |
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
             gradle wrapper --gradle-version 8.4
           fi
-      - name: Build APK debug
-        script: ./gradlew assembleDebug
+
+      - name: Incrémenter le versionCode
+        script: |
+          LATEST=$(google-play get-latest-build-number \
+            --package-name com.almanach.jardin 2>/dev/null || echo "0")
+          echo "versionCode actuel : $LATEST"
+          # Le versionCode sera géré manuellement dans build.gradle si pas de Play Store
+
+      - name: Build APK release signé
+        script: ./gradlew assembleRelease
+
     artifacts:
-      - app/build/outputs/apk/debug/*.apk
+      - app/build/outputs/apk/release/*.apk
+
+    publishing:
+      email:
+        recipients:
+          - votre@email.com
+        notify:
+          success: true
+          failure: true
