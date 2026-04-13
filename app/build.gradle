@@ -18,18 +18,17 @@ android {
 
     signingConfigs {
         release {
-            // Le keystore est décodé par Codemagic dans $CM_BUILD_DIR
             def keystorePath  = System.getenv("CM_BUILD_DIR") ?
                 "${System.getenv('CM_BUILD_DIR')}/almanach_keystore.jks" : null
-            def keyAlias      = System.getenv("CM_KEY_ALIAS")
-            def keyPassword   = System.getenv("CM_KEY_PASSWORD")
-            def storePassword = System.getenv("CM_STORE_PASSWORD")
+            def alias         = System.getenv("CM_KEY_ALIAS")
+            def keyPass       = System.getenv("CM_KEY_PASSWORD")
+            def storePass     = System.getenv("CM_STORE_PASSWORD")
 
-            if (keystorePath && keyAlias && keyPassword && storePassword) {
-                storeFile         file(keystorePath)
-                this.keyAlias     = keyAlias
-                this.keyPassword  = keyPassword
-                this.storePassword = storePassword
+            if (keystorePath && alias && keyPass && storePass) {
+                storeFile      file(keystorePath)
+                keyAlias       alias
+                keyPassword    keyPass
+                storePassword  storePass
             }
         }
     }
