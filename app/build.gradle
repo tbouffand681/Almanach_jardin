@@ -16,20 +16,20 @@ android {
         versionName "1.1"
     }
 
-    // Signature release — variables injectées par Codemagic
-    // En local, la signature debug est utilisée automatiquement si ces variables sont absentes
     signingConfigs {
         release {
-            def keystorePath    = System.getenv("CM_KEYSTORE_PATH")
-            def keyAlias        = System.getenv("CM_KEY_ALIAS")
-            def keyPassword     = System.getenv("CM_KEY_PASSWORD")
-            def storePassword   = System.getenv("CM_STORE_PASSWORD")
+            // Le keystore est décodé par Codemagic dans $CM_BUILD_DIR
+            def keystorePath  = System.getenv("CM_BUILD_DIR") ?
+                "${System.getenv('CM_BUILD_DIR')}/almanach_keystore.jks" : null
+            def keyAlias      = System.getenv("CM_KEY_ALIAS")
+            def keyPassword   = System.getenv("CM_KEY_PASSWORD")
+            def storePassword = System.getenv("CM_STORE_PASSWORD")
 
             if (keystorePath && keyAlias && keyPassword && storePassword) {
-                storeFile     file(keystorePath)
-                this.keyAlias        = keyAlias
-                this.keyPassword     = keyPassword
-                this.storePassword   = storePassword
+                storeFile         file(keystorePath)
+                this.keyAlias     = keyAlias
+                this.keyPassword  = keyPassword
+                this.storePassword = storePassword
             }
         }
     }
@@ -56,24 +56,15 @@ android {
 }
 
 dependencies {
-    // UI Material
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
-    // Activity + Fragment KTX
     implementation 'androidx.activity:activity-ktx:1.8.2'
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
-
-    // ViewModel + LiveData
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-
-    // Room
     implementation 'androidx.room:room-runtime:2.6.1'
     implementation 'androidx.room:room-ktx:2.6.1'
     ksp 'androidx.room:room-compiler:2.6.1'
-
-    // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }

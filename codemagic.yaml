@@ -4,15 +4,8 @@ workflows:
     max_build_duration: 30
 
     environment:
-      vars:
-        # Ces variables sont à définir dans Codemagic :
-        # App settings → Environment variables (chiffré)
-        #   CM_KEYSTORE_PATH  : chemin temporaire du keystore (géré automatiquement)
-        #   CM_KEY_ALIAS      : almanach
-        #   CM_KEY_PASSWORD   : votre mot de passe clé
-        #   CM_STORE_PASSWORD : votre mot de passe keystore
-      android_signing:
-        - almanach_keystore   # Nom du keystore tel qu'uploadé dans Codemagic
+      groups:
+        - keystore_credentials   # Contient CM_KEYSTORE, CM_KEY_ALIAS, CM_KEY_PASSWORD, CM_STORE_PASSWORD
 
     scripts:
       - name: Set gradlew executable
@@ -24,12 +17,9 @@ workflows:
             gradle wrapper --gradle-version 8.4
           fi
 
-      - name: Incrémenter le versionCode
+      - name: Décoder le keystore
         script: |
-          LATEST=$(google-play get-latest-build-number \
-            --package-name com.almanach.jardin 2>/dev/null || echo "0")
-          echo "versionCode actuel : $LATEST"
-          # Le versionCode sera géré manuellement dans build.gradle si pas de Play Store
+          echo $CM_KEYSTORE | base64 --decode > $CM_BUILD_DIR/almanach_keystore.jks
 
       - name: Build APK release signé
         script: ./gradlew assembleRelease
@@ -40,7 +30,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - votre@email.com
+          - tbouffand@st-ambroise.org
         notify:
           success: true
           failure: true
