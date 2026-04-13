@@ -5,17 +5,11 @@ workflows:
 
     environment:
       groups:
-        - keystore_credentials   # Contient CM_KEYSTORE, CM_KEY_ALIAS, CM_KEY_PASSWORD, CM_STORE_PASSWORD
+        - keystore_credentials
 
     scripts:
       - name: Set gradlew executable
         script: chmod +x gradlew
-
-      - name: Install Gradle wrapper if missing
-        script: |
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-            gradle wrapper --gradle-version 8.4
-          fi
 
       - name: Décoder le keystore
         script: |
