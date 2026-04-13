@@ -6,10 +6,14 @@ workflows:
     environment:
       groups:
         - keystore_credentials
+      java: 17
 
     scripts:
       - name: Set gradlew executable
         script: chmod +x gradlew
+
+      - name: Générer le Gradle wrapper
+        script: gradle wrapper --gradle-version 8.4
 
       - name: Décoder le keystore
         script: |
