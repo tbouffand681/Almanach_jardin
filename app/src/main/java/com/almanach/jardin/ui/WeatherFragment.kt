@@ -6,8 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.almanach.jardin.data.AgroWarning
+import com.almanach.jardin.data.DayWeather
 import com.almanach.jardin.data.WeatherResult
 import com.almanach.jardin.databinding.FragmentWeatherBinding
 import com.google.android.material.snackbar.Snackbar
@@ -31,14 +34,24 @@ class WeatherFragment : Fragment() {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) { doSearch(); true } else false
         }
         binding.btnRefresh.setOnClickListener { vm.resetToIdle() }
+        binding.btnPrevDay.setOnClickListener { vm.prevDay() }
+        binding.btnNextDay.setOnClickListener { vm.nextDay() }
 
         vm.state.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is WeatherState.Idle    -> showIdle()
                 is WeatherState.Loading -> showLoading()
-                is WeatherState.Success -> showWeather(state.data)
+                is WeatherState.Success -> {
+                    val idx = vm.dayIndex.value ?: 0
+                    showWeather(state.data, idx)
+                }
                 is WeatherState.Error   -> showError(state.message)
             }
+        }
+
+        vm.dayIndex.observe(viewLifecycleOwner) { idx ->
+            val state = vm.state.value
+            if (state is WeatherState.Success) showWeather(state.data, idx)
         }
     }
 
@@ -52,46 +65,82 @@ class WeatherFragment : Fragment() {
     }
 
     private fun showIdle() {
-        binding.progressBar.visibility = View.GONE
-        binding.cardWeather.visibility = View.GONE
-        binding.cardEt0.visibility     = View.GONE
-        binding.cardAdvice.visibility  = View.GONE
-        binding.btnRefresh.visibility  = View.GONE
-        binding.tilCity.visibility     = View.VISIBLE
-        binding.btnSearch.visibility   = View.VISIBLE
+        binding.progressBar.visibility  = View.GONE
+        binding.cardWeather.visibility  = View.GONE
+        binding.cardCumul.visibility    = View.GONE
+        binding.cardWarnings.visibility = View.GONE
+        binding.btnRefresh.visibility   = View.GONE
+        binding.tilCity.visibility      = View.VISIBLE
+        binding.btnSearch.visibility    = View.VISIBLE
         binding.etCity.setText("")
     }
 
     private fun showLoading() {
-        binding.progressBar.visibility = View.VISIBLE
-        binding.cardWeather.visibility = View.GONE
-        binding.cardEt0.visibility     = View.GONE
-        binding.cardAdvice.visibility  = View.GONE
+        binding.progressBar.visibility  = View.VISIBLE
+        binding.cardWeather.visibility  = View.GONE
+        binding.cardCumul.visibility    = View.GONE
+        binding.cardWarnings.visibility = View.GONE
     }
 
-    private fun showWeather(w: WeatherResult) {
-        binding.progressBar.visibility = View.GONE
-        binding.cardWeather.visibility = View.VISIBLE
-        binding.cardEt0.visibility     = View.VISIBLE
-        binding.cardAdvice.visibility  = View.VISIBLE
-        binding.btnRefresh.visibility  = View.VISIBLE
-        binding.tilCity.visibility     = View.GONE
-        binding.btnSearch.visibility   = View.GONE
+    private fun showWeather(w: WeatherResult, idx: Int) {
+        binding.progressBar.visibility  = View.GONE
+        binding.cardWeather.visibility  = View.VISIBLE
+        binding.cardCumul.visibility    = View.VISIBLE
+        binding.cardWarnings.visibility = View.VISIBLE
+        binding.btnRefresh.visibility   = View.VISIBLE
+        binding.tilCity.visibility      = View.GONE
+        binding.btnSearch.visibility    = View.GONE
 
-        binding.tvCity.text         = "📍 ${w.cityName}"
-        binding.tvIcon.text         = w.weatherEmoji
-        binding.tvTemp.text         = "${w.temperature.toInt()}°C"
-        binding.tvDescription.text  = w.weatherDescription
-        binding.tvFeelsLike.text    = "Ressenti ${w.feelsLike.toInt()}°C"
-        binding.tvMinMax.text       = "↓${w.tempMin.toInt()}° ↑${w.tempMax.toInt()}°"
-        binding.tvHumidity.text     = "💧 ${w.humidity}%"
-        binding.tvWind.text         = "💨 ${w.windSpeed.toInt()} km/h"
-        binding.tvPrecip.text       = "🌧 ${f(w.precipitation)} mm"
-        binding.tvEt0Today.text     = "${f(w.et0Today)} L/m²"
-        binding.tvEt0Cumul2.text    = "${f(w.et0Cumul2)} L/m²"
-        binding.tvEt0Cumul5.text    = "${f(w.et0Cumul5)} L/m²"
-        binding.tvSowingAdvice.text     = w.sowingAdvice()
-        binding.tvIrrigationAdvice.text = w.irrigationAdvice()
+        // Ville
+        binding.tvCity.text = "📍 ${w.cityName}"
+
+        // Navigation
+        binding.btnPrevDay.isEnabled = idx > 0
+        binding.btnNextDay.isEnabled = idx < w.days.size - 1
+
+        // Jour affiché
+        val day = w.days.getOrNull(idx) ?: return
+        bindDay(day)
+
+        // Cumulés ET₀ et précipitations (toujours J)
+        binding.tvEt0Today.text    = f(w.et0Today)
+        binding.tvEt048h.text      = f(w.et0Cumul48h)
+        binding.tvEt05d.text       = f(w.et0Cumul5d)
+        binding.tvPrecipToday.text = f(w.precipToday)
+        binding.tvPrecip48h.text   = f(w.precipCumul48h)
+        binding.tvPrecip5d.text    = f(w.precipCumul5d)
+
+        // Avertissements
+        showWarnings(w.warnings)
+    }
+
+    private fun bindDay(day: DayWeather) {
+        binding.tvDayLabel.text    = day.label
+        binding.tvIcon.text        = day.weatherEmoji
+        binding.tvDescription.text = day.weatherDescription
+        binding.tvMinMax.text      = "↓${day.tempMin.toInt()}°  ↑${day.tempMax.toInt()}°"
+        binding.tvHumidity.text    = "💧 ${day.humidity}%"
+        binding.tvWind.text        = "💨 ${day.windSpeed.toInt()} km/h"
+        binding.tvPrecip.text      = "🌧 ${f(day.precipitation)} mm"
+    }
+
+    private fun showWarnings(warnings: List<AgroWarning>) {
+        if (warnings.isEmpty()) {
+            binding.tvNoWarnings.visibility   = View.VISIBLE
+            binding.layoutWarnings.visibility = View.GONE
+        } else {
+            binding.tvNoWarnings.visibility   = View.GONE
+            binding.layoutWarnings.visibility = View.VISIBLE
+            binding.layoutWarnings.removeAllViews()
+            warnings.forEach { w ->
+                val tv = TextView(requireContext())
+                tv.text = "${w.emoji}  ${w.message}"
+                tv.textSize = 13f
+                tv.setPadding(0, 0, 0, 20)
+                tv.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+                binding.layoutWarnings.addView(tv)
+            }
+        }
     }
 
     private fun showError(msg: String) {

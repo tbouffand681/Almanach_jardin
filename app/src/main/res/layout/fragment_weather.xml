@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:hint="Votre ville (ex: Lyon, Chambéry...)">
+            android:hint="Votre ville">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_city"
                 android:layout_width="match_parent"
@@ -43,7 +43,7 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-        <!-- Carte météo principale -->
+        <!-- ═══ Carte météo principale + navigation ═══ -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_weather"
             android:layout_width="match_parent"
@@ -60,6 +60,7 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
+                <!-- Ville -->
                 <TextView
                     android:id="@+id/tv_city"
                     android:layout_width="wrap_content"
@@ -68,13 +69,54 @@
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                     android:layout_marginBottom="8dp" />
 
-                <!-- Température + icône -->
+                <!-- Navigation jours -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="4dp">
+                    android:layout_marginBottom="12dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_prev_day"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:text="◀"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="0dp" />
+
+                    <TextView
+                        android:id="@+id/tv_day_label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_next_day"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:text="▶"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="0dp" />
+                </LinearLayout>
+
+                <!-- Emoji + températures -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
 
                     <TextView
                         android:id="@+id/tv_icon"
@@ -90,28 +132,20 @@
                         android:orientation="vertical">
 
                         <TextView
-                            android:id="@+id/tv_temp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="#FFFFFF"
-                            android:textSize="42sp"
-                            android:textStyle="bold" />
-
-                        <TextView
                             android:id="@+id/tv_description"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textColor="#FFFFFF"
-                            android:alpha="0.85"
+                            android:alpha="0.9"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                         <TextView
-                            android:id="@+id/tv_feels_like"
+                            android:id="@+id/tv_min_max"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textColor="#FFFFFF"
-                            android:alpha="0.7"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
 
                     </LinearLayout>
                 </LinearLayout>
@@ -121,28 +155,23 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginTop="8dp">
-
-                    <TextView android:id="@+id/tv_min_max"
-                        android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:textColor="#FFFFFF" android:alpha="0.85"
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                    android:layout_marginTop="4dp">
 
                     <TextView android:id="@+id/tv_humidity"
                         android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:textColor="#FFFFFF" android:alpha="0.85"
+                        android:layout_weight="1" android:textColor="#FFFFFF" android:alpha="0.9"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                        android:gravity="center" />
+                        android:gravity="start" />
 
                     <TextView android:id="@+id/tv_wind"
                         android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:textColor="#FFFFFF" android:alpha="0.85"
+                        android:layout_weight="1" android:textColor="#FFFFFF" android:alpha="0.9"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:gravity="center" />
 
                     <TextView android:id="@+id/tv_precip"
                         android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:textColor="#FFFFFF" android:alpha="0.85"
+                        android:layout_weight="1" android:textColor="#FFFFFF" android:alpha="0.9"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:gravity="end" />
 
@@ -151,9 +180,9 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Carte ET₀ -->
+        <!-- ═══ Carte ET₀ + Précipitations cumulées ═══ -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_et0"
+            android:id="@+id/card_cumul"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -167,45 +196,72 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🌱 Évapotranspiration (ET₀)"
-                    android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                    android:layout_marginBottom="12dp" />
-
-                <!-- Ligne Aujourd'hui -->
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginBottom="6dp">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Aujourd'hui"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:alpha="0.6" />
-                    <TextView android:id="@+id/tv_et0_today"
-                        android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- Ligne Cumul 2j -->
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginBottom="6dp">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Cumul 2 jours"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:alpha="0.6" />
-                    <TextView android:id="@+id/tv_et0_cumul2"
-                        android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- Ligne Cumul 5j -->
+                <!-- En-tête colonnes -->
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginBottom="8dp">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Cumul 5 jours"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:alpha="0.6" />
-                    <TextView android:id="@+id/tv_et0_cumul5"
-                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_weight="2" android:text=""
+                        android:textAppearance="@style/TextAppearance.Material3.LabelSmall" android:alpha="0.6" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Auj."
+                        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                        android:gravity="center" android:alpha="0.6" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="48h"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                        android:gravity="center" android:alpha="0.6" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="5 j"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                        android:gravity="end" android:alpha="0.6" />
+                </LinearLayout>
+
+                <!-- Ligne ET₀ -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="2" android:text="🌱 ET₀ (mm)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    <TextView android:id="@+id/tv_et0_today"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:gravity="center"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/tv_et0_48h"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:gravity="center"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/tv_et0_5d"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:gravity="end"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Séparateur -->
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="#10000000" android:layout_marginBottom="8dp" />
+
+                <!-- Ligne Précipitations -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="2" android:text="🌧️ Pluie (mm)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    <TextView android:id="@+id/tv_precip_today"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:gravity="center"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/tv_precip_48h"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:gravity="center"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/tv_precip_5d"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:gravity="end"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -213,16 +269,16 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="ET₀ FAO-56 : besoins en eau des cultures (mm = L/m²)"
+                    android:text="ET₀ FAO-56 · Précipitations : données historiques + prévisions"
                     android:textSize="11sp"
-                    android:alpha="0.45" />
+                    android:alpha="0.4" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Carte conseils -->
+        <!-- ═══ Carte avertissements ═══ -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_advice"
+            android:id="@+id/card_warnings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -239,30 +295,29 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="💡 Conseils du jour"
+                    android:text="⚠️ Avertissements agronomiques"
                     android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
                     android:layout_marginBottom="10dp" />
 
                 <TextView
-                    android:id="@+id/tv_sowing_advice"
+                    android:id="@+id/tv_no_warnings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:text="✅ Aucun avertissement pour les 6 prochains jours."
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                    android:layout_marginBottom="8dp" />
+                    android:alpha="0.7" />
 
-                <View android:layout_width="match_parent" android:layout_height="1dp"
-                    android:background="#10000000" android:layout_marginBottom="8dp" />
-
-                <TextView
-                    android:id="@+id/tv_irrigation_advice"
+                <LinearLayout
+                    android:id="@+id/layout_warnings"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    android:orientation="vertical"
+                    android:visibility="gone" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Bouton actualiser -->
+        <!-- Bouton changer de ville -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_refresh"
             style="@style/Widget.Material3.Button.OutlinedButton"
@@ -272,11 +327,10 @@
             android:text="🔄 Changer de ville"
             android:visibility="gone" />
 
-        <!-- Source -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Source : Open-Meteo.com — données météo agricoles gratuites"
+            android:text="Source : Open-Meteo.com — météo agricole gratuite"
             android:textSize="11sp"
             android:alpha="0.4"
             android:gravity="center" />

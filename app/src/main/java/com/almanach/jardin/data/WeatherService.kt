@@ -5,32 +5,29 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URL
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.net.ssl.HttpsURLConnection
 
 // ─── Suggestion ville ─────────────────────────────────────────────────────────
 
 data class CitySuggestion(
-    val displayLabel: String,  // Ex : "Chambéry, 73000, Savoie, France"
-    val searchName: String,    // Ce qu'on passe à fetchByCity
+    val displayLabel: String,
+    val searchName: String,
     val lat: Double,
     val lon: Double
 )
 
-// ─── Résultat météo ───────────────────────────────────────────────────────────
+// ─── Météo d'un jour ──────────────────────────────────────────────────────────
 
-data class WeatherResult(
-    val cityName: String,
-    val temperature: Double,
-    val feelsLike: Double,
+data class DayWeather(
+    val label: String,          // "Aujourd'hui", "Demain", "Lun. 21/04"…
+    val weatherCode: Int,
     val tempMin: Double,
     val tempMax: Double,
-    val humidity: Int,
-    val windSpeed: Double,
-    val precipitation: Double,
-    val weatherCode: Int,
-    val et0Today: Double,
-    val et0Cumul2: Double,
-    val et0Cumul5: Double
+    val humidity: Int,          // moyenne du jour (%)
+    val windSpeed: Double,      // max du jour (km/h)
+    val precipitation: Double   // mm
 ) {
     val weatherEmoji get() = when (weatherCode) {
         0            -> "☀️"
@@ -44,7 +41,6 @@ data class WeatherResult(
         in 95..99    -> "⛈️"
         else         -> "🌡️"
     }
-
     val weatherDescription get() = when (weatherCode) {
         0            -> "Ciel dégagé"
         1, 2         -> "Partiellement nuageux"
@@ -58,78 +54,62 @@ data class WeatherResult(
         96, 99       -> "Orage avec grêle"
         else         -> "Conditions variables"
     }
-
-    fun sowingAdvice() = when {
-        temperature < 3           -> "❄️ Gel possible — aucun semis en pleine terre."
-        temperature < 8           -> "🥶 Trop froid pour semer. Réservez la serre."
-        temperature in 8.0..12.0  -> "🌡️ Frais. Espèces rustiques : épinard, mâche, radis."
-        temperature in 12.0..17.0 -> "✅ Bonnes conditions : carotte, laitue, poireau."
-        temperature in 17.0..27.0 -> "🌞 Idéal pour la plupart des semis."
-        temperature > 32          -> "🔥 Trop chaud — semez tôt le matin."
-        else                      -> "✅ Conditions favorables."
-    }
-
-    fun irrigationAdvice(): String {
-        val deficit = (et0Today - precipitation).coerceAtLeast(0.0)
-        return when {
-            precipitation >= et0Today -> "💧 Pluie suffisante (${f(precipitation)} L/m²) — pas d'arrosage nécessaire."
-            deficit < 1.5             -> "💧 Déficit faible (${f(deficit)} L/m²) — vérifiez si le sol est sec."
-            deficit < 3.5             -> "💧💧 Apportez environ ${f(deficit)} L/m²."
-            else                      -> "💧💧💧 Arrosage important : ${f(deficit)} L/m²."
-        }
-    }
-
-    private fun f(v: Double) = "%.1f".format(v)
 }
+
+// ─── Avertissement agronomique ────────────────────────────────────────────────
+
+data class AgroWarning(val emoji: String, val message: String)
+
+// ─── Résultat complet ─────────────────────────────────────────────────────────
+
+data class WeatherResult(
+    val cityName: String,
+    val days: List<DayWeather>,         // J à J+5 (6 entrées)
+    // ET₀
+    val et0Today: Double,
+    val et0Cumul48h: Double,            // J-1 + J (48h passées)
+    val et0Cumul5d: Double,             // J-4 + J (5 jours passés)
+    // Précipitations cumulées passées
+    val precipToday: Double,
+    val precipCumul48h: Double,
+    val precipCumul5d: Double,
+    // Avertissements
+    val warnings: List<AgroWarning>
+)
 
 // ─── Service réseau ───────────────────────────────────────────────────────────
 
 object WeatherService {
 
-    /**
-     * Autocomplétion : retourne jusqu'à 5 suggestions pour une requête partielle.
-     * Utilise Nominatim avec countrycodes=fr pour privilégier la France.
-     */
+    private val ISO = DateTimeFormatter.ISO_LOCAL_DATE
+
     suspend fun fetchSuggestions(query: String): Result<List<CitySuggestion>> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val encoded = java.net.URLEncoder.encode(query, "UTF-8")
-                // On cherche prioritairement en France mais on accepte aussi les autres pays
                 val url = "https://nominatim.openstreetmap.org/search" +
-                    "?q=$encoded" +
-                    "&format=json" +
-                    "&limit=5" +
-                    "&accept-language=fr" +
-                    "&featuretype=city,town,village"
-                val json = get(url, userAgent = "AlmanachDuJardin/1.0 Android")
-                val arr  = JSONArray(json)
-
+                    "?q=$encoded&format=json&limit=5&accept-language=fr&featuretype=city,town,village"
+                val arr = JSONArray(get(url, userAgent = "AlmanachDuJardin/1.0 Android"))
                 (0 until arr.length()).mapNotNull { i ->
-                    val obj      = arr.getJSONObject(i)
-                    val name     = obj.optString("display_name", "")
-                    val lat      = obj.optDouble("lat", 0.0)
-                    val lon      = obj.optDouble("lon", 0.0)
+                    val obj  = arr.getJSONObject(i)
+                    val name = obj.optString("display_name", "")
+                    val lat  = obj.optDouble("lat", 0.0)
+                    val lon  = obj.optDouble("lon", 0.0)
                     if (name.isEmpty()) return@mapNotNull null
-
-                    // Construire un label court : "Ville, Code postal, Département, Pays"
-                    val parts    = name.split(",").map { it.trim() }
-                    val label    = buildLabel(parts)
-                    // Pour la recherche météo, on utilise les coordonnées directement
+                    val parts = name.split(",").map { it.trim() }
                     CitySuggestion(
-                        displayLabel = label,
+                        displayLabel = buildLabel(parts),
                         searchName   = parts.firstOrNull() ?: name,
-                        lat          = lat,
-                        lon          = lon
+                        lat = lat, lon = lon
                     )
                 }
             }
         }
 
     private fun buildLabel(parts: List<String>): String {
-        // Garder ville + premier élément numérique (code postal) + dernier (pays), max 60 chars
-        val city    = parts.firstOrNull() ?: ""
-        val postal  = parts.firstOrNull { it.matches(Regex("\\d{4,6}")) } ?: ""
-        val country = parts.lastOrNull() ?: ""
+        val city   = parts.firstOrNull() ?: ""
+        val postal = parts.firstOrNull { it.matches(Regex("\\d{4,6}")) } ?: ""
+        val country= parts.lastOrNull() ?: ""
         return buildString {
             append(city)
             if (postal.isNotEmpty()) append(", $postal")
@@ -137,13 +117,9 @@ object WeatherService {
         }.take(60)
     }
 
-    /**
-     * Météo complète pour une ville (nom) — géocode puis récupère Open-Meteo.
-     */
     suspend fun fetchByCity(city: String): Result<WeatherResult> =
         withContext(Dispatchers.IO) {
             runCatching {
-                // Géocodage
                 val encoded = java.net.URLEncoder.encode(city, "UTF-8")
                 val geoJson = get(
                     "https://nominatim.openstreetmap.org/search?q=$encoded&format=json&limit=1&accept-language=fr",
@@ -151,62 +127,142 @@ object WeatherService {
                 )
                 val geoArr = JSONArray(geoJson)
                 if (geoArr.length() == 0) error("Ville \"$city\" introuvable.")
-
                 val geo      = geoArr.getJSONObject(0)
                 val lat      = geo.getDouble("lat")
                 val lon      = geo.getDouble("lon")
                 val cityName = geo.optString("display_name", city).split(",").first().trim()
-
                 fetchByCoords(lat, lon, cityName)
             }
         }
 
-    /**
-     * Météo directement par coordonnées (utilisé quand on sélectionne une suggestion).
-     */
     suspend fun fetchByCoords(lat: Double, lon: Double, cityName: String): WeatherResult =
         withContext(Dispatchers.IO) {
-            val url = "https://api.open-meteo.com/v1/forecast?" +
+            val today = LocalDate.now()
+
+            // ── 1. Prévisions J à J+5 ──────────────────────────────────────
+            val forecastUrl = "https://api.open-meteo.com/v1/forecast?" +
                 "latitude=$lat&longitude=$lon" +
-                "&current=temperature_2m,relative_humidity_2m,apparent_temperature," +
-                "precipitation,wind_speed_10m,weather_code" +
-                "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum," +
+                "&daily=weather_code,temperature_2m_max,temperature_2m_min," +
+                "precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean," +
                 "et0_fao_evapotranspiration" +
-                "&timezone=auto&forecast_days=5"
+                "&timezone=auto&forecast_days=6"
 
-            val root    = JSONObject(get(url))
-            val current = root.getJSONObject("current")
-            val daily   = root.getJSONObject("daily")
-            val et0Arr  = daily.getJSONArray("et0_fao_evapotranspiration")
+            val forecast = JSONObject(get(forecastUrl))
+            val fd       = forecast.getJSONObject("daily")
+            val fDates   = fd.getJSONArray("time")
+            val fCodes   = fd.getJSONArray("weather_code")
+            val fTmax    = fd.getJSONArray("temperature_2m_max")
+            val fTmin    = fd.getJSONArray("temperature_2m_min")
+            val fPrecip  = fd.getJSONArray("precipitation_sum")
+            val fWind    = fd.getJSONArray("wind_speed_10m_max")
+            val fHumid   = fd.getJSONArray("relative_humidity_2m_mean")
+            val fEt0     = fd.getJSONArray("et0_fao_evapotranspiration")
 
-            var et0Sum2 = 0.0; var et0Sum5 = 0.0
-            for (i in 0 until minOf(et0Arr.length(), 5)) {
-                val v = et0Arr.optDouble(i, 0.0)
-                if (i < 2) et0Sum2 += v
-                et0Sum5 += v
+            val days = (0 until fDates.length()).map { i ->
+                val date = LocalDate.parse(fDates.getString(i), ISO)
+                val label = when (i) {
+                    0    -> "Aujourd'hui"
+                    1    -> "Demain"
+                    else -> {
+                        val dayName = date.dayOfWeek.getDisplayName(
+                            java.time.format.TextStyle.SHORT, java.util.Locale.FRENCH
+                        ).replaceFirstChar { it.uppercase() }
+                        "$dayName ${date.dayOfMonth}/${date.monthValue}"
+                    }
+                }
+                DayWeather(
+                    label         = label,
+                    weatherCode   = fCodes.optInt(i, 0),
+                    tempMin       = fTmin.optDouble(i, 0.0),
+                    tempMax       = fTmax.optDouble(i, 0.0),
+                    humidity      = fHumid.optInt(i, 0),
+                    windSpeed     = fWind.optDouble(i, 0.0),
+                    precipitation = fPrecip.optDouble(i, 0.0)
+                )
+            }
+
+            // ET₀ aujourd'hui (depuis prévisions J=0)
+            val et0Today = fEt0.optDouble(0, 0.0)
+
+            // ── 2. Historique J-4 → J-1 pour ET₀ et précip cumulées ────────
+            val startDate = today.minusDays(4).format(ISO)
+            val endDate   = today.minusDays(1).format(ISO)
+
+            val histUrl = "https://archive-api.open-meteo.com/v1/archive?" +
+                "latitude=$lat&longitude=$lon" +
+                "&start_date=$startDate&end_date=$endDate" +
+                "&daily=precipitation_sum,et0_fao_evapotranspiration" +
+                "&timezone=auto"
+
+            val hist   = JSONObject(get(histUrl))
+            val hd     = hist.getJSONObject("daily")
+            val hEt0   = hd.getJSONArray("et0_fao_evapotranspiration")
+            val hPrecip= hd.getJSONArray("precipitation_sum")
+
+            // hEt0[0]=J-4, [1]=J-3, [2]=J-2, [3]=J-1
+            val et0Cumul48h = hEt0.optDouble(3, 0.0) + et0Today           // J-1 + J
+            val et0Cumul5d  = (0 until hEt0.length()).sumOf { hEt0.optDouble(it, 0.0) } + et0Today
+
+            val precipToday    = fPrecip.optDouble(0, 0.0)
+            val precipCumul48h = hPrecip.optDouble(3, 0.0) + precipToday   // J-1 + J
+            val precipCumul5d  = (0 until hPrecip.length()).sumOf { hPrecip.optDouble(it, 0.0) } + precipToday
+
+            // ── 3. Avertissements agronomiques ─────────────────────────────
+            val warnings = mutableListOf<AgroWarning>()
+
+            // Gel dans les 6 jours
+            val gelJours = days.filter { it.tempMin < 2.0 }
+            if (gelJours.isNotEmpty()) {
+                val jours = gelJours.joinToString(", ") { it.label }
+                warnings += AgroWarning("❄️", "Risque de gel : $jours (T° min < 2°C). Protégez semis et fruitiers en fleurs.")
+            }
+
+            // Canicule
+            val caniculeJours = days.filter { it.tempMax > 35.0 }
+            if (caniculeJours.isNotEmpty()) {
+                val jours = caniculeJours.joinToString(", ") { it.label }
+                warnings += AgroWarning("🔥", "Canicule : $jours (T° max > 35°C). Arrosez tôt le matin, paillez.")
+            }
+
+            // Carpocapse : T° > 10°C plusieurs jours consécutifs
+            val carpoJours = days.count { it.tempMax > 10.0 && it.tempMin > 10.0 }
+            if (carpoJours >= 3) {
+                warnings += AgroWarning("🐛", "Conditions favorables au carpocapse ($carpoJours jours > 10°C). Vérifiez vos pièges à phéromones.")
+            }
+
+            // Rouille / mildiou : humidité > 80% + T° entre 10 et 25°C
+            val rouilleJours = days.filter { it.humidity > 80 && it.tempMax in 10.0..25.0 }
+            if (rouilleJours.isNotEmpty()) {
+                val jours = rouilleJours.joinToString(", ") { it.label }
+                warnings += AgroWarning("🍄", "Risque rouille/mildiou : $jours (humidité > 80%, T° 10-25°C). Envisagez un traitement préventif.")
+            }
+
+            // Sécheresse : ET₀ 5j >> précipitations 5j
+            val deficitHydrique = et0Cumul5d - precipCumul5d
+            if (deficitHydrique > 20.0) {
+                warnings += AgroWarning("💧", "Déficit hydrique important sur 5 jours : ET₀ ${f(et0Cumul5d)} mm vs ${f(precipCumul5d)} mm de pluie. Arrosage recommandé.")
             }
 
             WeatherResult(
-                cityName      = cityName,
-                temperature   = current.getDouble("temperature_2m"),
-                feelsLike     = current.getDouble("apparent_temperature"),
-                tempMin       = daily.getJSONArray("temperature_2m_min").getDouble(0),
-                tempMax       = daily.getJSONArray("temperature_2m_max").getDouble(0),
-                humidity      = current.getInt("relative_humidity_2m"),
-                windSpeed     = current.getDouble("wind_speed_10m"),
-                precipitation = current.optDouble("precipitation", 0.0),
-                weatherCode   = current.getInt("weather_code"),
-                et0Today      = et0Arr.optDouble(0, 0.0),
-                et0Cumul2     = et0Sum2,
-                et0Cumul5     = et0Sum5
+                cityName       = cityName,
+                days           = days,
+                et0Today       = et0Today,
+                et0Cumul48h    = et0Cumul48h,
+                et0Cumul5d     = et0Cumul5d,
+                precipToday    = precipToday,
+                precipCumul48h = precipCumul48h,
+                precipCumul5d  = precipCumul5d,
+                warnings       = warnings
             )
         }
+
+    private fun f(v: Double) = "%.1f".format(v)
 
     private fun get(url: String, userAgent: String = "AlmanachDuJardin/1.0"): String {
         val conn = URL(url).openConnection() as HttpsURLConnection
         conn.setRequestProperty("User-Agent", userAgent)
         conn.connectTimeout = 10_000
-        conn.readTimeout    = 10_000
+        conn.readTimeout    = 15_000
         return conn.inputStream.bufferedReader().readText()
     }
 }
